@@ -1,32 +1,57 @@
 const http = require("http");
+const fs = require("fs");
+const path = require("path");
 
 const PORT = 3000;
 
-//in case we are doing some updates we have to manually restart the server to see changes
 const server = http.createServer((req, res) => {
   console.log("Server request");
-  console.log(req.url, req.method);
-  //now we said that we sending text to our browser from the server
-  // res.setHeader("Content-Type", "text/plain");
-  // res.write("Hello world!");
 
-  //now we said that we sending html to our browser from the server, so now it would understand our html tags
-  // res.setHeader("Content-Type", "text/html");
-  // res.write("<head><link rel='stylesheet' href='#'></head>"); //even now we can connects css
-  // res.write("<h2>Hello world!</h2>");
-  // res.write("<h1>Hello david!</h1>");
+  res.setHeader("Content-Type", "text/html");
 
-  //so we emulated the work with API as we send a JSON response from the server to our browser
-  res.setHeader("Content-Type", "application/json");
-  const data = JSON.stringify([
-    { name: "Tommy", age: 35 },
-    { name: "Arthur", age: 40 },
-  ]);
-  res.end(data);
-  //end method signals that all requests have been sent
-  // res.end();
+  const createPath = (page) => path.resolve(__dirname, "views", `${page}.html`);
+
+  let basePath = "";
+
+  switch (req.url) {
+    //in case user sends any of these values
+    //it will be redirected to the main page
+    case "/":
+    case "/home":
+    case "/index.html":
+      basePath = createPath("index");
+      res.statusCode = 200;
+    //it is when we had an old route, and now it changed, so the user will be redirected to the new route
+    case "/aboutus":
+      res.statusCode = 301;
+      res.setHeader("Location", "/contacts");
+      res.end();
+      break;
+    case "/contacts":
+      basePath = createPath("contacts");
+      res.statusCode = 200;
+    //if the user entered the wrong path
+    default:
+      basePath = createPath("error");
+      //page not found
+      res.statusCode = 404;
+  }
+
+  fs.readFile(basePath, (err, data) => {
+    if (err) {
+      console.log(err);
+      //server error means like the page are u looking for not found
+      res.statusCode = 500;
+      //here is also res.end() as we need end our response
+      //to give a response to the browser
+      res.end();
+    } else {
+      res.write(data);
+      res.end();
+    }
+  });
 });
 
 server.listen(PORT, "localhost", (error) => {
-  error ? console.log(error) : console.log(`listening to port ${PORT}`);
+  error ? console.log(error) : console.log(`listening port ${PORT}`);
 });
